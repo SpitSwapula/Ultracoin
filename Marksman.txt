@@ -1,6 +1,6 @@
 @name UltrakillCoinshot
-@persist CanHitCoin Delay TargetRadius BulletHitboxRadius CoinClipSize MaxProjDistance UseTf2Trail FFA AllowedWeapons:array [Whitelist Blacklist]:table #settings
-@persist [Coins UsedCoins]:table LaserHolos:table HC CoinAmmo WepAmmo 
+@persist CanHitCoin Delay TargetRadius CoinClipSize MaxProjDistance UseTf2Trail FFA AllowedWeapons:array [Whitelist Blacklist]:table #settings
+@persist [Coins UsedCoins]:table LaserHolos:table HC CoinAmmo WepAmmo GroupName:string
 
 #commissioned by Spit Swapula (very big ultrakill fan)
 #Current contributors: Katsu, Anane, Heckteck, Spit Swapula, Omni, Runic
@@ -14,20 +14,24 @@ if(first()){
 ############################### E2 SETTINGS #################################
     
     TargetRadius = 20000 #range that the coin will shoot a player from
-    BulletHitboxRadius = 100 #size of the bullet hitbox radius in source units
     CoinClipSize = 4 #clip size
-    MaxProjDistance = 200 #if the distance from the coin to the victim is greater than this, the projectile will be spawned this many units away
+    MaxProjDistance = 400 #if the distance from the coin to the victim is greater than this, the projectile will be spawned this many units away
     Delay = 300 #wait this amount of time until the player can shoot the coin, otherwise they would be able to spam it, which aint no fun. 
     
     UseTf2Trail = 1 #turn this off if you dont have tf2 (why)
     
-    FFA = 1 #if FFA is off, e2 will target only people within the whitelist, and the blacklist is disabled
-    
+    FFA = 1 #if FFA is off, e2 will target only people within the whitelist, and the blacklist is disabled    
     
     AllowedWeapons = array("weapon_pistol", "weapon_357")
     local WhitelistNames = array() 
     local BlacklistNames = array() #no need to add your own name to this, the chip will exclude the other automatically
     
+    GroupName = "UltrakillCoinshot"
+    
+    #[
+    change this if some retard is using the datasignals to mess with the e2. 
+    all e2s in this group can communicate with eachother and hit eachothers coins
+    ]#
 #############################################################################
 #############################################################################
     BlacklistNames:pushString(owner():name())
@@ -117,7 +121,7 @@ if(first()){
         return array(1,InitHit)
     }
         
-    function number uLTRAKILL(CoinIndex){
+    function number uLTRAKILL(CoinIndex,Countered){
         local FirstCoin = Coins[CoinIndex,array][1,entity]
         
         FirstCoin:soundPlay("coin" + Coins:count(),0,"physics/metal/metal_solid_impact_hard5.wav")
@@ -147,7 +151,8 @@ if(first()){
         holoAng(HC,ang(TX,TY,0))
         holoClip(HC,1,LastPos,-holoEntity(HC):up(),1) 
         LaserHolos:pushArray(array(HC,Time + 1))
-                                
+        
+        local BeamColor = Countered ? vec(255,0,0) : vec(241,207,61)
         HC++
         holoCreate(HC)
         holoPos(HC,LastPos)
@@ -156,7 +161,7 @@ if(first()){
         holoDisableShading(HC,1)
         holoScale(HC,vec(2,2,50))
         holoClipEnabled(HC,1,1)
-        holoColor(HC,vec(241,207,61))     
+        holoColor(HC,BeamColor)     
            
         LaserHolos:pushArray(array(HC,Time + 1))
         
@@ -193,33 +198,42 @@ if(first()){
                 holoDisableShading(HC,1)
                 holoScale(HC,vec(2,2,50))
                 holoClipEnabled(HC,1,1)
-                holoColor(HC,vec(241,207,61))
+                holoColor(HC,BeamColor)
                 
                 LaserHolos:pushArray(array(HC,Time + 1))
             }else{
                 break
             }
         }
+        
 
         local Victims = table()
-                
-        for(I=1,Players:count()){
-            local Distance = Players[I,entity]:pos():distance(LastPos)
-            if(Distance < TargetRadius & hitScan(LastPos,Players[I,entity]:pos()+vec(0,0,30)) & Players[I,entity]:isAlive()){
-                if(FFA){
-                    if(!listCheck(Blacklist,Players[I,entity])){
-                        Victims:pushArray(array(Players[I,entity],Distance))
-                    }
-                }else{
-                    if(listCheck(Whitelist,Players[I,entity])){
-                        Victims:pushArray(array(Players[I,entity],Distance))
+        
+        if(Countered){
+            if(hitScan(LastPos,owner():pos()+vec(0,0,30))){
+                Victims:pushArray(array(owner(),1))
+            }
+        }else{        
+            for(I=1,Players:count()){
+                local Distance = Players[I,entity]:pos():distance(LastPos)
+                if(Distance < TargetRadius & hitScan(LastPos,Players[I,entity]:pos()+vec(0,0,30)) & Players[I,entity]:isAlive()){
+                    if(FFA){
+                        if(!listCheck(Blacklist,Players[I,entity])){
+                            Victims:pushArray(array(Players[I,entity],Distance))
+                        }
+                    }else{
+                        if(listCheck(Whitelist,Players[I,entity])){
+                            Victims:pushArray(array(Players[I,entity],Distance))
+                        }
                     }
                 }
             }
         }
                 
         if(Victims:count() <= 0){
-            print("TOSS: No victims found")
+            if(!Countered){
+                print("TOSS: No victims found")
+            }
             return 0
         }else{    
             local ClosestIndex = 1
@@ -257,11 +271,8 @@ if(first()){
     }
     
     findIncludeModel("models/props_junk/PopCan01a.mdl")
-    findIncludeClass("player")
     
-    timer("reload",1)
-    timer("tick",1000)
-        
+    timer("reload",1)      
     CoinAmmo = CoinClipSize
     LHI = 1
 
@@ -286,12 +297,14 @@ if(first()){
         hint("[whitelisted:]",10)
         hint("[TDM MODE]",10)
     }
+    
+    dsJoinGroup(GroupName)
+    dsSetScope(10)
+    
 }
 
 
-if(clk("tick")){
-    timer("tick",1000)
-    Seconds++
+if(changed(Seconds)){
     for(I=1,Coins:count()){
         if(Seconds >= Coins[I,array][2,number]){
             Coins[I,array][1,entity]:propDelete()
@@ -329,7 +342,7 @@ if(changed(RMB) & RMB & CoinAmmo > 0 & weaponAllowed(owner():weapon())){
     owner():soundPlay(1,0,"physics/metal/chain_impact_hard1.wav")
     soundVolume(1,0.3)
 
-    Coin = propSpawn("models/props_junk/PopCan01a.mdl",owner():toWorld(vec(50,0,0)),ang(0,0,0),0)
+    Coin = propSpawn("models/props_junk/PopCan01a.mdl",owner():shootPos()+owner():eye()*30-vec(0,0,20),ang(0,0,0),0)
     Coin:setMass(2)
     Coin:propGravity(1.5)
     Coin:applyForce(Coin:up() * 800)
@@ -359,18 +372,27 @@ if(changed(RMB) & RMB & CoinAmmo > 0 & weaponAllowed(owner():weapon())){
 local Weapon = owner():weapon()
 
 if(!changed(Weapon) & changed(WepAmmo) & $WepAmmo < 0 & weaponAllowed(Weapon) & CanHitCoin){
-    for(I=1,Coins:count()){
-        local CurrCoin = Coins[I,array][1,entity]
-      
-        local RHS = rayHitSphere(owner():shootPos(),owner():eye(),CurrCoin:pos(),BulletHitboxRadius)
+    findInSphere(owner():pos(),9999999999999)
+    local Found = findToArray()
+
+    for(I=1,Found:count()){
+        local CurrCoin = Found[I,entity]
+
+        local RHS = rayHitSphere(owner():shootPos(),owner():eye(),CurrCoin:pos(),100)
         local Hit = RHS[1,number] #& hitScan(Blacklist[I,entity]:shootPos(),RHS[2,vector])
-        
-        if(Hit){
-            print("***COIN HIT***")
             
-            uLTRAKILL(I)
+        if(Hit){
+            local CoinOwner = CurrCoin:owner()      
+            if(CurrCoin:owner() == owner()){ #our coin
+                print("***COIN HIT***")
+                uLTRAKILL(findInTable(Coins,CurrCoin),0)             
+            }else{ #countered someone
+                print("***COIN COUNTER***")
+                dsSend("counter",GroupName,array(CoinOwner,CurrCoin,owner()))
+            }
             break
         }
+
     }
     
     #[ #aim assist angle [depreciated]
@@ -403,9 +425,35 @@ for(I=1,LaserHolos:count()){
         LaserHolos:remove(I)
     }
 }
+
+###############################################
+# coin goes away upon hitting ground
+
 for(I=1,Coins:count()){
-    if(!Coins[I,array][1,entity]){
+    local CurrCoin = Coins[I,array][1,entity]
+    rangerFilter(CurrCoin)
+    rangerFilter(owner())
+    
+    local R = rangerOffset(10,CurrCoin:pos(),vec(0,0,-1))
+    if(R:hit()){
+        CurrCoin:propDelete()
         Coins:remove(I)
+    }
+}
+
+###############################################
+# countering
+
+if(dsClk("counter")){
+    local CounterData = dsGetArray()
+    
+    if(CounterData[1,entity] == owner()){ #we got countered
+        local CoinIndex = findInTable(Coins,CounterData[2,entity])
+        
+        if(CoinIndex){
+            print("countered by " + CounterData[3,entity]:name())
+            uLTRAKILL(findInTable(Coins,CounterData[2,entity]),1)
+        }
     }
 }
 
