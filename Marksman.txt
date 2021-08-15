@@ -1,9 +1,9 @@
 @name UltrakillCoinshot
-@persist TargetRadius BulletHitboxRadius CoinClipSize MaxProjDistance UseTf2Trail FFA AllowedWeapons:array [Whitelist Blacklist]:table #settings
+@persist CanHitCoin Delay TargetRadius BulletHitboxRadius CoinClipSize MaxProjDistance UseTf2Trail FFA AllowedWeapons:array [Whitelist Blacklist]:table #settings
 @persist [Coins UsedCoins]:table LaserHolos:table HC CoinAmmo WepAmmo 
 
 #commissioned by Spit Swapula (very big ultrakill fan)
-#Current contributors: Katsu, Anane, Heckteck, Spit Swapula, Omni
+#Current contributors: Katsu, Anane, Heckteck, Spit Swapula, Omni, Runic
 
 Players = players()
 Time = systime()
@@ -17,9 +17,12 @@ if(first()){
     BulletHitboxRadius = 100 #size of the bullet hitbox radius in source units
     CoinClipSize = 4 #clip size
     MaxProjDistance = 200 #if the distance from the coin to the victim is greater than this, the projectile will be spawned this many units away
+    Delay = 300 #wait this amount of time until the player can shoot the coin, otherwise they would be able to spam it, which aint no fun. 
+    
     UseTf2Trail = 1 #turn this off if you dont have tf2 (why)
     
     FFA = 1 #if FFA is off, e2 will target only people within the whitelist, and the blacklist is disabled
+    
     
     AllowedWeapons = array("weapon_pistol", "weapon_357")
     local WhitelistNames = array() 
@@ -319,6 +322,7 @@ RMB = owner():keyAttack2()
 WepAmmo = owner():weapon():clip1()
 
 if(changed(RMB) & RMB & CoinAmmo > 0 & weaponAllowed(owner():weapon())){
+    CanHitCoin = 0
     CoinAmmo--
     hint(CoinAmmo + "/4",2)
     
@@ -347,12 +351,14 @@ if(changed(RMB) & RMB & CoinAmmo > 0 & weaponAllowed(owner():weapon())){
     holoPos(HC,Coin:toWorld(vec(0,0,0)))
     
     Coins:pushArray(array(Coin,Seconds+7,HC))
+    stoptimer("Antispam")
+    timer("Antispam",Delay)
 }
 
 #############################
 local Weapon = owner():weapon()
 
-if(!changed(Weapon) & changed(WepAmmo) & $WepAmmo < 0 & weaponAllowed(Weapon)){
+if(!changed(Weapon) & changed(WepAmmo) & $WepAmmo < 0 & weaponAllowed(Weapon) & CanHitCoin){
     for(I=1,Coins:count()){
         local CurrCoin = Coins[I,array][1,entity]
       
@@ -403,4 +409,10 @@ for(I=1,Coins:count()){
     }
 }
 
+################################################
+#### TeenyWeeny Antispam. Greetz by Runic. #####
+################################################
 
+if(clk("Antispam")){
+    CanHitCoin = 1
+}
