@@ -3,15 +3,19 @@ An Expression2 script that ports Ultrakill's Marksman/coinshot ability to Garry'
 
 # Installation
 Just clone in, SSH, or pull the zip file.
+
 Drop message.txt into ProgramFiles/Steam/Steamapps/Common/GarrysMod/garrysmod/data/expression2
 
 # Dependencies
 Propcore
+
 Wiremod
+
 TF2(optional for alt tracer)
 
 # DevConsole Dependencies
 wire_holograms_modelany 1
+
 wire_expression2_extension_enable propcore
 
 # To use
