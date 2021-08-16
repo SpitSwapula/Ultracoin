@@ -16,15 +16,15 @@ if(first()){
     TargetRadius = 20000 #range that the coin will shoot a player from
     CoinClipSize = 4 #clip size
     MaxProjDistance = 400 #if the distance from the coin to the victim is greater than this, the projectile will be spawned this many units away
-    Delay = 300 #wait this amount of time until the player can shoot the coin, otherwise they would be able to spam it, which aint no fun. 
+    Delay = 500 #wait this amount of time until the player can shoot the coin, otherwise they would be able to spam it, which aint no fun. 
     
-    UseTf2Trail = 1 #turn this off if you dont have tf2 (why)
+    UseTf2Trail = 0 #set this to 1 if you and the server have tf2 assets and wish to see a better looking trail on the coin.
     
     FFA = 1 #if FFA is off, e2 will target only people within the whitelist, and the blacklist is disabled    
     
-    AllowedWeapons = array("weapon_pistol", "weapon_357")
+    AllowedWeapons = array("weapon_357")
     local WhitelistNames = array() 
-    local BlacklistNames = array() #no need to add your own name to this, the chip will exclude the other automatically
+    local BlacklistNames = array() #no need to add your own name to this, the chip will exclude the owner automatically
     
     GroupName = "UltrakillCoinshot"
     
@@ -261,9 +261,9 @@ if(first()){
             local Bottle = propSpawn("models/props_junk/glassjug01.mdl",BottlePos,ang(TX,TY,0),0)
             Bottle:propGravity(0)
             Bottle:propDrag(0)
-            Bottle:setMass(999999)
+            Bottle:setMass(20)
                     
-            Bottle:applyForce(Bottle:forward()*3000*Bottle:mass())
+            Bottle:applyForce(Bottle:forward()*2000*Bottle:mass())
             Bottle:setTrails(10,5,1,"trails/laser",vec(225,221,0),255)
             
             return 1
