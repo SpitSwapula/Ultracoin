@@ -26,3 +26,5 @@ If someone else chucked a coin, shoot it before they can to totally meme them.
 Coins will recharge over time and you will receive a notification.
 
 Add players to blacklist and whitelist so you can choose who is targetted.
+
+Coins can be punted with Gravity Gun for extra range
