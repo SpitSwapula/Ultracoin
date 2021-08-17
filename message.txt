@@ -261,7 +261,7 @@ if(first()){
             local Bottle = propSpawn("models/props_junk/glassjug01.mdl",BottlePos,ang(TX,TY,0),0)
             Bottle:propGravity(0)
             Bottle:propDrag(0)
-            Bottle:setMass(20)
+            Bottle:setMass(8)
                     
             Bottle:applyForce(Bottle:forward()*2000*Bottle:mass())
             Bottle:setTrails(10,5,1,"trails/laser",vec(225,221,0),255)
