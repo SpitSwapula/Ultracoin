@@ -3,7 +3,7 @@
 @persist [Coins UsedCoins]:table LaserHolos:table HC CoinAmmo Tracer WepAmmo GroupName:string
 
 #commissioned by Spit Swapula (very big ultrakill fan)
-#Current contributors: Katsu, Anane, Heckteck, Spit Swapula, Omni, Runic
+#Current contributors: Katsu, Anane, Heckteck, Runic
 
 Players = players()
 Time = systime()
