@@ -1,6 +1,6 @@
 @name UltrakillCoinshot
 @persist CanHitCoin Delay TargetRadius CoinClipSize MaxProjDistance UseTf2Trail FFA AllowedWeapons:array [Whitelist Blacklist]:table #settings
-@persist [Coins UsedCoins]:table LaserHolos:table HC CoinAmmo WepAmmo GroupName:string
+@persist [Coins UsedCoins]:table LaserHolos:table HC CoinAmmo Tracer WepAmmo GroupName:string
 
 #commissioned by Spit Swapula (very big ultrakill fan)
 #Current contributors: Katsu, Anane, Heckteck, Spit Swapula, Omni, Runic
@@ -18,7 +18,8 @@ if(first()){
     MaxProjDistance = 400 #if the distance from the coin to the victim is greater than this, the projectile will be spawned this many units away
     Delay = 500 #wait this amount of time until the player can shoot the coin, otherwise they would be able to spam it, which aint no fun. 
     
-    UseTf2Trail = 0 #set this to 1 if you and the server have tf2 assets and wish to see a better looking trail on the coin.
+    UseTf2Trail = 1 #set this to 1 if you and the server have tf2 assets and wish to see a better looking trail on the coin.
+    Tracer = 1 # show tracer, turn off if distracting
     
     FFA = 1 #if FFA is off, e2 will target only people within the whitelist, and the blacklist is disabled    
     
@@ -144,7 +145,7 @@ if(first()){
         holoDisableShading(HC,1)
         holoScale(HC,vec(2,2,50))
         holoClipEnabled(HC,1,1)
-        holoColor(HC,vec(255,255,255))   
+        holoColor(HC,vec(241,207,61))   
                 
         local TX = -elevation(ShootPos,ang(0,0,0),LastPos) + 90
         local TY = -bearing(ShootPos,ang(0,0,0),LastPos)
@@ -358,7 +359,8 @@ if(changed(RMB) & RMB & CoinAmmo > 0 & weaponAllowed(owner():weapon())){
     HC++
     holoCreate(HC)
     holoModel(HC,"models/hunter/tubes/circle2x2.mdl")
-    holoMaterial(HC,"debug/env_cubemap_model")
+    holoMaterial(HC,"models/shiny")
+    holoColor(HC,vec(255,191,0))
     holoScale(HC,vec(0.1,0.1,0.8))
     holoParent(HC,Coin)
     holoPos(HC,Coin:toWorld(vec(0,0,0)))
@@ -371,43 +373,65 @@ if(changed(RMB) & RMB & CoinAmmo > 0 & weaponAllowed(owner():weapon())){
 #############################
 local Weapon = owner():weapon()
 
-if(!changed(Weapon) & changed(WepAmmo) & $WepAmmo < 0 & weaponAllowed(Weapon) & CanHitCoin){
-    findInSphere(owner():pos(),9999999999999)
-    local Found = findToArray()
-
-    for(I=1,Found:count()){
-        local CurrCoin = Found[I,entity]
-
-        local RHS = rayHitSphere(owner():shootPos(),owner():eye(),CurrCoin:pos(),100)
-        local Hit = RHS[1,number] #& hitScan(Blacklist[I,entity]:shootPos(),RHS[2,vector])
-            
-        if(Hit){
-            local CoinOwner = CurrCoin:owner()      
-            if(CurrCoin:owner() == owner()){ #our coin
-                print("***COIN HIT***")
-                uLTRAKILL(findInTable(Coins,CurrCoin),0)             
-            }else{ #countered someone
-                print("***COIN COUNTER***")
-                dsSend("counter",GroupName,array(CoinOwner,CurrCoin,owner()))
+if(!changed(Weapon) & changed(WepAmmo) & $WepAmmo < 0 & weaponAllowed(Weapon)){    
+    local HitCoin = 0
+    
+    if(CanHitCoin){
+        findInSphere(owner():pos(),9999999999999)
+        local Found = findToArray()
+    
+        for(I=1,Found:count()){
+            local CurrCoin = Found[I,entity]
+    
+            local RHS = rayHitSphere(owner():shootPos(),owner():eye(),CurrCoin:pos(),100)
+            local Hit = RHS[1,number] #& hitScan(Blacklist[I,entity]:shootPos(),RHS[2,vector])
+                
+            if(Hit){
+                local CoinOwner = CurrCoin:owner()      
+                if(CurrCoin:owner() == owner()){ #our coin
+                    print("***COIN HIT***")
+                    uLTRAKILL(findInTable(Coins,CurrCoin),0)          
+                }else{ #countered someone
+                    print("***COIN COUNTER***")
+                    dsSend("counter",GroupName,array(CoinOwner,CurrCoin,owner()))
+                }
+                
+                HitCoin = 1
+                
+                break
             }
-            break
+    
         }
-
+        
+        #[ #aim assist angle [depreciated]
+        findInCone(owner():shootPos(),owner():eye(),9999999999999,AimAssistAng)
+        local Found = findToArray()
+        
+        for(I=1,Found:count()){
+            local CoinIndex = findInTable(Coins,Found[I,entity])
+            if(CoinIndex){
+                print("***COIN HIT***")
+                            
+                uLTRAKILL(CoinIndex)
+            }
+        }
+        ]#
     }
     
-    #[ #aim assist angle [depreciated]
-    findInCone(owner():shootPos(),owner():eye(),9999999999999,AimAssistAng)
-    local Found = findToArray()
-    
-    for(I=1,Found:count()){
-        local CoinIndex = findInTable(Coins,Found[I,entity])
-        if(CoinIndex){
-            print("***COIN HIT***")
-                        
-            uLTRAKILL(CoinIndex)
-        }
+    if(!HitCoin & Tracer){
+        HC++
+        holoCreate(HC)
+        holoPos(HC,owner():shootPos() + owner():eye()*20)
+        holoAng(HC,owner():eyeAngles() + ang(90,0,0))
+        holoModel(HC,"models/props_c17/signpole001.mdl")
+        holoMaterial(HC,"models/debug/debugwhite")
+        holoDisableShading(HC,1)
+        holoScale(HC,vec(2,2,50))
+        holoClipEnabled(HC,1,1)
+        holoColor(HC,vec(241,207,61))
+               
+        LaserHolos:pushArray(array(HC,Time + 0.5))
     }
-    ]#
 }
 
 #############################################
