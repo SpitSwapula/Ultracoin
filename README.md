@@ -4,7 +4,7 @@ An Expression2 script that ports Ultrakill's Marksman/coinshot ability to Garry'
 # Installation
 Just clone in, SSH, or pull the zip file.
 
-Drop message.txt into ProgramFiles/Steam/Steamapps/Common/GarrysMod/garrysmod/data/expression2
+Drop Ultracoin.txt into ProgramFiles/Steam/Steamapps/Common/GarrysMod/garrysmod/data/expression2
 
 # Dependencies
 Propcore
