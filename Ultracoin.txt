@@ -1,9 +1,11 @@
 @name UltrakillCoinshot
 @persist CanHitCoin Delay TargetRadius CoinClipSize MaxProjDistance UseTf2Trail FFA AllowedWeapons:array [Whitelist Blacklist]:table #settings
 @persist [Coins UsedCoins]:table LaserHolos:table HC CoinAmmo Tracer WepAmmo GroupName:string
+@outputs Blacklist:table Whitelist:table
 
 #commissioned by Spit Swapula (very big ultrakill fan)
-#Current contributors: Katsu, Anane, Heckteck, Runic
+#Main contributor: Katsu
+#Other contributors: Anane, Heckteck, Spit Swapula, Omni, Runic
 
 Players = players()
 Time = systime()
@@ -75,7 +77,7 @@ if(first()){
 
     function number listCheck(Table:table,Value:entity){
         for(A=1,Table:count()){
-            if(Table[1,entity] == Value){
+            if(Table[A,entity] == Value){
                 return A
             }
         }
