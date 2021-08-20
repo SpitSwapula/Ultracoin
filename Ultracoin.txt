@@ -1,11 +1,11 @@
 @name UltrakillCoinshot
-@persist CanHitCoin Delay TargetRadius CoinClipSize MaxProjDistance UseTf2Trail FFA AllowedWeapons:array [Whitelist Blacklist]:table #settings
+@persist CanHitCoin Delay TargetRadius CoinClipSize MaxProjDistance UseTf2Trail TargetNPCS FFA AllowedWeapons:array [Whitelist Blacklist]:table #settings
 @persist [Coins UsedCoins]:table LaserHolos:table HC CoinAmmo Tracer WepAmmo GroupName:string
 @outputs Blacklist:table Whitelist:table
 
 #commissioned by Spit Swapula (very big ultrakill fan)
 #Main contributor: Katsu
-#Other contributors: Anane, Heckteck, Spit Swapula, Omni, Runic
+#Other contributors: Heckteck, Anane, Spit Swapula, Omni, Runic
 
 Players = players()
 Time = systime()
@@ -23,6 +23,7 @@ if(first()){
     UseTf2Trail = 1 #set this to 1 if you and the server have tf2 assets and wish to see a better looking trail on the coin.
     Tracer = 1 # show tracer, turn off if distracting
     
+    TargetNPCS = 1 #self explanatory
     FFA = 1 #if FFA is off, e2 will target only people within the whitelist, and the blacklist is disabled    
     
     AllowedWeapons = array("weapon_357")
@@ -35,6 +36,7 @@ if(first()){
     change this if some retard is using the datasignals to mess with the e2. 
     all e2s in this group can communicate with eachother and hit eachothers coins
     ]#
+    
 #############################################################################
 #############################################################################
     BlacklistNames:pushString(owner():name())
@@ -55,7 +57,6 @@ if(first()){
     
     function number hitScan(Pos1:vector,Pos2:vector){
         #function checks if something is in the way between two points in the world
-        rangerHitEntities(0)
         
         local R = rangerOffset(Pos1,Pos2)
         
@@ -231,7 +232,22 @@ if(first()){
                     }
                 }
             }
+            
+            if(TargetNPCS){
+                findClearWhiteList()
+                findIncludeClass("npc")
+                findInSphere(LastPos,TargetRadius)
+                local NPCS = findToArray()
+
+                for(I=1,NPCS:count()){
+                    local Distance = NPCS[I,entity]:pos():distance(LastPos)
+                    if(hitScan(LastPos,NPCS[I,entity]:pos()+vec(0,0,30))){
+                        Victims:pushArray(array(NPCS[I,entity],Distance))
+                    }
+                }
+            }
         }
+        
                 
         if(Victims:count() <= 0){
             if(!Countered){
@@ -248,8 +264,12 @@ if(first()){
                     
             local Victim = Victims[ClosestIndex,array][1,entity]
             
-            print("TOSS: Victim: " + Victim:name())
-                    
+            if(Victim:type() == "player"){
+                print("Victim: " + Victim:name())
+            }else{
+                print("Victim: " + Victim:type())
+            }                    
+            
             local Hitpos = Victim:toWorld(vec(0,0,30))
             local TX = -elevation(LastPos,ang(0,0,0),Hitpos)
             local TY = -bearing(LastPos,ang(0,0,0),Hitpos)
@@ -272,8 +292,6 @@ if(first()){
             return 1
         }        
     }
-    
-    findIncludeModel("models/props_junk/PopCan01a.mdl")
     
     timer("reload",1)      
     CoinAmmo = CoinClipSize
@@ -379,6 +397,8 @@ if(!changed(Weapon) & changed(WepAmmo) & $WepAmmo < 0 & weaponAllowed(Weapon)){
     local HitCoin = 0
     
     if(CanHitCoin){
+        findClearWhiteList()
+        findIncludeModel("models/props_junk/PopCan01a.mdl")
         findInSphere(owner():pos(),9999999999999)
         local Found = findToArray()
     
