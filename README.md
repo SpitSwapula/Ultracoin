@@ -1,5 +1,6 @@
 # Ultracoin
 An Expression2 script that ports Ultrakill's Marksman/coinshot ability to Garry's Mod
+An overwhelming majority of this code is written by the lovely Katsu
 
 # Installation
 Just clone in, SSH, or pull the zip file.
