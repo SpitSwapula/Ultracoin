@@ -1,4 +1,4 @@
-@name UltrakillCoinshot
+@name UltrakillCoinshot v2
 @persist CanHitCoin Delay TargetRadius CoinClipSize MaxProjDistance UseTf2Trail TargetNPCS FFA AllowedWeapons:array [Whitelist Blacklist]:table #settings
 @persist [Coins UsedCoins]:table LaserHolos:table HC CoinAmmo Tracer WepAmmo GroupName:string
 @outputs Blacklist:table Whitelist:table
@@ -125,7 +125,7 @@ if(first()){
         return array(1,InitHit)
     }
         
-    function number uLTRAKILL(CoinIndex,Countered){
+    function number uLTRAKILL(CoinIndex,Countered,CounterPos:vector){
         local FirstCoin = Coins[CoinIndex,array][1,entity]
         
         FirstCoin:soundPlay("coin" + Coins:count(),0,"physics/metal/metal_solid_impact_hard5.wav")
@@ -140,9 +140,10 @@ if(first()){
         local LastPos = FirstCoin:pos()
         local ShootPos = owner():shootPos()
         
+        local TracerPos = Countered ? CounterPos : owner():shootPos()
         HC++
         holoCreate(HC)
-        holoPos(HC,owner():shootPos())
+        holoPos(HC,TracerPos)
         holoModel(HC,"models/props_c17/signpole001.mdl")
         holoMaterial(HC,"models/debug/debugwhite")
         holoDisableShading(HC,1)
@@ -150,8 +151,8 @@ if(first()){
         holoClipEnabled(HC,1,1)
         holoColor(HC,vec(241,207,61))   
                 
-        local TX = -elevation(ShootPos,ang(0,0,0),LastPos) + 90
-        local TY = -bearing(ShootPos,ang(0,0,0),LastPos)
+        local TX = -elevation(TracerPos,ang(0,0,0),LastPos) + 90
+        local TY = -bearing(TracerPos,ang(0,0,0),LastPos)
         holoAng(HC,ang(TX,TY,0))
         holoClip(HC,1,LastPos,-holoEntity(HC):up(),1) 
         LaserHolos:pushArray(array(HC,Time + 1))
@@ -159,20 +160,25 @@ if(first()){
         local BeamColor = Countered ? vec(255,0,0) : vec(241,207,61)
         HC++
         holoCreate(HC)
-        holoPos(HC,LastPos)
         holoModel(HC,"models/props_c17/signpole001.mdl")
         holoMaterial(HC,"models/debug/debugwhite")
         holoDisableShading(HC,1)
         holoScale(HC,vec(2,2,50))
         holoClipEnabled(HC,1,1)
         holoColor(HC,BeamColor)     
-           
+        holoPos(HC,LastPos)
+
+        
         LaserHolos:pushArray(array(HC,Time + 1))
+        
+        local Bounces = 1
         
         while(1){
             local CoinIndex = nextClosestCoinIndex(LastPos)
             
             if(CoinIndex){ #jump to next coin
+                Bounces++
+                
                 local CoinEnt = Coins[CoinIndex,array][1,entity]
                 local CoinPos = CoinEnt:pos()
                     
@@ -264,6 +270,10 @@ if(first()){
                     
             local Victim = Victims[ClosestIndex,array][1,entity]
             
+            if(!Countered){
+                printColor(vec(255,0,0),"RICO",vec(0,255,255),"SHOT x" + Bounces)
+            }
+            
             if(Victim:type() == "player"){
                 print("Victim: " + Victim:name())
             }else{
@@ -284,7 +294,7 @@ if(first()){
             local Bottle = propSpawn("models/props_junk/glassjug01.mdl",BottlePos,ang(TX,TY,0),0)
             Bottle:propGravity(0)
             Bottle:propDrag(0)
-            Bottle:setMass(8)
+            Bottle:setMass(10*Bounces)
                     
             Bottle:applyForce(Bottle:forward()*2000*Bottle:mass())
             Bottle:setTrails(10,5,1,"trails/laser",vec(225,221,0),255)
@@ -411,11 +421,19 @@ if(!changed(Weapon) & changed(WepAmmo) & $WepAmmo < 0 & weaponAllowed(Weapon)){
             if(Hit){
                 local CoinOwner = CurrCoin:owner()      
                 if(CurrCoin:owner() == owner()){ #our coin
-                    print("***COIN HIT***")
-                    uLTRAKILL(findInTable(Coins,CurrCoin),0)          
+                    uLTRAKILL(findInTable(Coins,CurrCoin),0,vec(0,0,0))          
                 }else{ #countered someone
-                    print("***COIN COUNTER***")
-                    dsSend("counter",GroupName,array(CoinOwner,CurrCoin,owner()))
+                    if(FFA){
+                        if(!listCheck(Blacklist,CoinOwner)){
+                            printColor(vec(255,140,0),"COUNTER",vec(0,255,255),"RICOSHOT")
+                            dsSend("counter",GroupName,array(CoinOwner,CurrCoin,owner()))
+                        }
+                    }else{
+                        if(listCheck(Whitelist,CoinOwner)){
+                            printColor(vec(255,140,0),"COUNTER",vec(0,255,255),"RICOSHOT")
+                            dsSend("counter",GroupName,array(CoinOwner,CurrCoin,owner()))
+                        }
+                    }
                 }
                 
                 HitCoin = 1
@@ -498,7 +516,7 @@ if(dsClk("counter")){
         
         if(CoinIndex){
             print("countered by " + CounterData[3,entity]:name())
-            uLTRAKILL(findInTable(Coins,CounterData[2,entity]),1)
+            uLTRAKILL(findInTable(Coins,CounterData[2,entity]),1,CounterData[3,entity]:shootPos())
         }
     }
 }
