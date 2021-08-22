@@ -1,5 +1,5 @@
-@name UltrakillCoinshot v2
-@persist CanHitCoin Delay TargetRadius CoinClipSize MaxProjDistance UseTf2Trail TargetNPCS FFA AllowedWeapons:array [Whitelist Blacklist]:table #settings
+@name UltrakillCoinshot v3
+@persist CanHitCoin TargetRadius UseTf2Trail TargetNPCS FFA AllowedWeapons:array [Whitelist Blacklist]:table #settings
 @persist [Coins UsedCoins]:table LaserHolos:table HC CoinAmmo Tracer WepAmmo GroupName:string
 @outputs Blacklist:table Whitelist:table
 
@@ -16,10 +16,7 @@ if(first()){
 ############################### E2 SETTINGS #################################
     
     TargetRadius = 20000 #range that the coin will shoot a player from
-    CoinClipSize = 4 #clip size
-    MaxProjDistance = 400 #if the distance from the coin to the victim is greater than this, the projectile will be spawned this many units away
-    Delay = 500 #wait this amount of time until the player can shoot the coin, otherwise they would be able to spam it, which aint no fun. 
-    
+
     UseTf2Trail = 1 #set this to 1 if you and the server have tf2 assets and wish to see a better looking trail on the coin.
     Tracer = 1 # show tracer, turn off if distracting
     
@@ -290,7 +287,7 @@ if(first()){
             #bottle 
             local BottleDist = LastPos:distance(Hitpos)
             
-            local BottlePos = (BottleDist > MaxProjDistance) ? Hitpos + (LastPos - Hitpos):normalized()*MaxProjDistance : LastPos
+            local BottlePos = (BottleDist > 400) ? Hitpos + (LastPos - Hitpos):normalized()*400 : LastPos
             local Bottle = propSpawn("models/props_junk/glassjug01.mdl",BottlePos,ang(TX,TY,0),0)
             Bottle:propGravity(0)
             Bottle:propDrag(0)
@@ -304,7 +301,7 @@ if(first()){
     }
     
     timer("reload",1)      
-    CoinAmmo = CoinClipSize
+    CoinAmmo = 4
     LHI = 1
 
     if(FFA){
@@ -354,7 +351,7 @@ if(changed(Seconds)){
 if(clk("reload")){
     timer("reload",3000)
     
-    if(CoinAmmo < CoinClipSize){
+    if(CoinAmmo < 4){
         CoinAmmo++
         hint("+Coin, " + CoinAmmo + "/4",3)
     }
@@ -397,7 +394,7 @@ if(changed(RMB) & RMB & CoinAmmo > 0 & weaponAllowed(owner():weapon())){
     
     Coins:pushArray(array(Coin,Seconds+7,HC))
     stoptimer("Antispam")
-    timer("Antispam",Delay)
+    timer("Antispam",500)
 }
 
 #############################
