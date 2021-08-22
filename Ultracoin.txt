@@ -1,6 +1,6 @@
-@name UltrakillCoinshot v3
+@name UltrakillCoinshot v5
 @persist CanHitCoin TargetRadius UseTf2Trail TargetNPCS FFA AllowedWeapons:array [Whitelist Blacklist]:table #settings
-@persist [Coins UsedCoins]:table LaserHolos:table HC CoinAmmo Tracer WepAmmo GroupName:string
+@persist [Coins UsedCoins]:table LaserHolos:table HC CoinAmmo Tracer WepAmmo GroupName:string AntCore
 @outputs Blacklist:table Whitelist:table
 
 #commissioned by Spit Swapula (very big ultrakill fan)
@@ -55,6 +55,7 @@ if(first()){
     function number hitScan(Pos1:vector,Pos2:vector){
         #function checks if something is in the way between two points in the world
         
+        rangerFilter(owner())
         local R = rangerOffset(Pos1,Pos2)
         
         if(R:fraction() > 0.90){
@@ -284,17 +285,42 @@ if(first()){
             holoAng(HC,ang(TX+90,TY,0))
             holoClip(HC,1,Hitpos,-holoEntity(HC):up(),1) 
             
-            #bottle 
-            local BottleDist = LastPos:distance(Hitpos)
             
-            local BottlePos = (BottleDist > 400) ? Hitpos + (LastPos - Hitpos):normalized()*400 : LastPos
-            local Bottle = propSpawn("models/props_junk/glassjug01.mdl",BottlePos,ang(TX,TY,0),0)
-            Bottle:propGravity(0)
-            Bottle:propDrag(0)
-            Bottle:setMass(10*Bounces)
+            if(AntCore){
+                local BaseDamage = 37.5*Bounces
+                local VictimVel = Victim:vel()
+                local Reduction = 1
+                
+                if(VictimVel:length() > 350){
+                    local CoinShotUV = (Hitpos - LastPos):normalized()
+                    local VictimVelUV = VictimVel:normalized()
+                    DP = abs(VictimVelUV:dot(CoinShotUV))
                     
-            Bottle:applyForce(Bottle:forward()*2000*Bottle:mass())
-            Bottle:setTrails(10,5,1,"trails/laser",vec(225,221,0),255)
+                    Reduction = clamp((DP - 0.1)^(1/7),0,1)
+                }
+                
+                local Damage = BaseDamage * Reduction
+                
+                print("Final Damage: " + Damage)
+                
+                #ifdef boom(vector,number,number)
+                    boomCustom("bloodimpact",Victim:pos(),Damage,10)
+                #else
+                #endif
+                
+            }else{
+                #bottle (NO ANTCORE)
+                local BottleDist = LastPos:distance(Hitpos)
+                
+                local BottlePos = (BottleDist > 400) ? Hitpos + (LastPos - Hitpos):normalized()*400 : LastPos
+                local Bottle = propSpawn("models/props_junk/glassjug01.mdl",BottlePos,ang(TX,TY,0),0)
+                Bottle:propGravity(0)
+                Bottle:propDrag(0)
+                Bottle:setMass(10*Bounces)
+                        
+                Bottle:applyForce(Bottle:forward()*2000*Bottle:mass())
+                Bottle:setTrails(10,5,1,"trails/laser",vec(225,221,0),255)
+            }
             
             return 1
         }        
@@ -329,6 +355,12 @@ if(first()){
     dsJoinGroup(GroupName)
     dsSetScope(10)
     
+    #ifdef boom(vector,number,number)
+        AntCore = 1
+    #else 
+        print("This server does not have antcore.")
+        print("Damage will be dealt using props, which is unreliable and somewhat random")
+    #endif  
 }
 
 
@@ -348,9 +380,13 @@ if(changed(Seconds)){
     }
 }
 
-if(clk("reload")){
+if(CoinAmmo < 4){
     timer("reload",3000)
-    
+}else{
+    stoptimer("reload")
+}
+
+if(clk("reload")){    
     if(CoinAmmo < 4){
         CoinAmmo++
         hint("+Coin, " + CoinAmmo + "/4",3)
@@ -412,9 +448,9 @@ if(!changed(Weapon) & changed(WepAmmo) & $WepAmmo < 0 & weaponAllowed(Weapon)){
         for(I=1,Found:count()){
             local CurrCoin = Found[I,entity]
     
-            local RHS = rayHitSphere(owner():shootPos(),owner():eye(),CurrCoin:pos(),100)
-            local Hit = RHS[1,number] #& hitScan(Blacklist[I,entity]:shootPos(),RHS[2,vector])
-                
+            local RHS = rayHitSphere(owner():shootPos(),owner():eye(),CurrCoin:pos(),47.5)
+            local Hit = RHS[1,number] & hitScan(owner():shootPos(),RHS[2,vector])
+            
             if(Hit){
                 local CoinOwner = CurrCoin:owner()      
                 if(CurrCoin:owner() == owner()){ #our coin
