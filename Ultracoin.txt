@@ -1,4 +1,4 @@
-@name UltrakillCoinshot v5
+@name UltrakillCoinshot v6
 @persist CanHitCoin TargetRadius UseTf2Trail TargetNPCS FFA AllowedWeapons:array [Whitelist Blacklist]:table #settings
 @persist [Coins UsedCoins]:table LaserHolos:table HC CoinAmmo Tracer WepAmmo GroupName:string AntCore
 @outputs Blacklist:table Whitelist:table
@@ -399,6 +399,12 @@ RMB = owner():keyAttack2()
 WepAmmo = owner():weapon():clip1()
 
 if(changed(RMB) & RMB & CoinAmmo > 0 & weaponAllowed(owner():weapon())){
+    concmd("pac_event coin")
+    
+    timer("flip",100)
+}
+
+if(clk("flip")){
     CanHitCoin = 0
     CoinAmmo--
     hint(CoinAmmo + "/4",2)
