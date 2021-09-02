@@ -1,7 +1,11 @@
 # Ultracoin
 An Expression2 script that ports Ultrakill's Marksman/coinshot ability to Garry's Mod
 
-An overwhelming majority of this code is written by the lovely Katsu
+An overwhelming majority of this code is written by the lovely Katsu (Especially the beautiful holos and the algebraic functions relating to hit detection and grazing shots)
+
+WhitelistBlacklist, coinpunt tech, and momentum imparted tossing done by the lovely Heckteck
+
+minor miscellanious tweaks done by the lovely Omni, Myself, Gamerweed69 and GoldenFlare
 
 # Installation
 Just clone in, SSH, or pull the zip file.
