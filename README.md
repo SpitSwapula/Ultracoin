@@ -5,6 +5,8 @@ An overwhelming majority of this code is written by the lovely Katsu (Especially
 
 WhitelistBlacklist, coinpunt tech, and momentum imparted tossing done by the lovely Heckteck
 
+Antispam by Runic
+
 minor miscellanious tweaks done by the lovely Omni, Myself, Gamerweed69 and GoldenFlare
 
 # Installation
