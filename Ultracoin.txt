@@ -1,6 +1,6 @@
-@name UltrakillCoinshot v7
+@name UltrakillCoinshot v8
 @persist CanHitCoin UseTf2Trail TargetNPCS FFA AllowedWeapons:array [Whitelist Blacklist]:table #settings
-@persist [Coins UsedCoins]:table LaserHolos:table HC CoinAmmo Tracer WepAmmo GroupName:string AntCore
+@persist [Coins UsedCoins]:table LaserHolos:table HC CoinAmmo Tracer WepAmmo GroupName:string AntCore DebugHitReg
 @outputs Blacklist:table Whitelist:table
 
 #commissioned by Spit Swapula (very big ultrakill fan)
@@ -32,6 +32,11 @@ if(first()){
     all e2s in this group can communicate with eachother and hit eachothers coins
     ]#
     
+    DebugHitReg = 1
+    #yellow = actual coinpos
+    #green = coin hitbox center
+    #red = shot location
+    
 #############################################################################
 #############################################################################
     BlacklistNames:pushString(owner():name())
@@ -54,6 +59,10 @@ if(first()){
         #function checks if something is in the way between two points in the world
         
         rangerFilter(owner())
+        for(I=1,Coins:count()){
+            rangerFilter(Coins[I,array][1,entity])
+        }
+        
         local Players = players()
         for(I=1,Players:count()){
             rangerFilter(Players[I,entity])
@@ -61,7 +70,7 @@ if(first()){
         
         local R = rangerOffset(Pos1,Pos2)
         
-        if(R:fraction() > 0.98){
+        if(R:fraction() == 1){
             return 1
         }else{
             return 0
@@ -101,7 +110,7 @@ if(first()){
     }
     
     function array rayHitSphere(RPos:vector, R:vector, SCenter:vector, SRadius){
-        #SOME LINEAR ALGEBRA BULLSHIT -KATSU
+        #SOME VECTOR MATH BULLSHIT -KATSU
         local C = SCenter - RPos        
         local DP = C:dot(R)
     
@@ -120,10 +129,13 @@ if(first()){
         
         local TC = sqrt(SRadius^2 - D^2)
         local DistToPoint = ProjLength - TC
-        
+        local DistToPoint2 = ProjLength + TC
+                
         local InitHit = RPos + R*DistToPoint
+        local OuterHit = RPos + R*DistToPoint2
         
-        return array(1,InitHit)
+        local Midpoint = (InitHit+OuterHit)/2
+        return array(1,InitHit,OuterHit,Midpoint)
     }
         
     function number uLTRAKILL(CoinIndex,Countered,CounterPos:vector){
@@ -227,7 +239,7 @@ if(first()){
         }else{        
             for(I=1,Players:count()){
                 local Distance = Players[I,entity]:pos():distance(LastPos)
-                if(Distance < 3000 & hitScan(LastPos,Players[I,entity]:pos()+vec(0,0,30)) & Players[I,entity]:isAlive()){
+                if(Distance < 5000 & hitScan(LastPos,Players[I,entity]:pos()+vec(0,0,30)) & Players[I,entity]:isAlive()){
                     if(FFA){
                         if(!listCheck(Blacklist,Players[I,entity])){
                             Victims:pushArray(array(Players[I,entity],Distance))
@@ -243,7 +255,7 @@ if(first()){
             if(TargetNPCS){
                 findClearWhiteList()
                 findIncludeClass("npc")
-                findInSphere(LastPos,3000)
+                findInSphere(LastPos,1000000)
                 local NPCS = findToArray()
 
                 for(I=1,NPCS:count()){
@@ -296,13 +308,16 @@ if(first()){
                 local CoinShotUV = (Hitpos - LastPos):normalized()
                 local VictimVelUV = VictimVel:normalized()
                 local DP = abs(VictimVelUV:dot(CoinShotUV))
-                
+                local Distance = Victim:pos():distance(LastPos)
+                                
                 local DPR = (DP == 0) ? 0 : 1 - DP #dot product reduction
                 local VR = (clamp(owner():vel():length(),350,999999999999)-350)/250 #velocity reduction
-
-                local Damage = clamp(BaseDamage - BaseDamage * VR * DPR,0,150)
+                local DFO = Distance < 3000 & Victim:isPlayer() ? 0 : clamp((Distance - 3000) / 2000,0,1)^2 #distance falloff
                 
-                print("Final Damage: " + Damage + "\n" + VR + " VR | " + DPR + " DPR")
+                local Damage = clamp(BaseDamage - BaseDamage * VR * DPR,0,150)*(1-DFO)
+                
+                print("Final Damage: " + round(Damage,2) + "\n" + 
+                round(VR,2) + " VR | " + round(DPR,2) + " DPR | " + round(DFO,2) + " DFO (" + round(Distance,2) + " distance)")
                 
                 #ifdef boom(vector,number,number)
                     boomCustom("bloodimpact",Victim:pos(),Damage,10)
@@ -362,6 +377,35 @@ if(first()){
         print("This server does not have antcore.")
         print("Damage will be dealt using props, which is unreliable and somewhat random")
     #endif  
+    
+    if(DebugHitReg){
+        holoCreate(1) #hitbox center
+        holoColor(1,vec(0,0,255))
+        holoDisableShading(1,1)
+        holoScale(1,vec(0.5,0.5,0.5))
+    
+        holoCreate(2) #actual coin pos
+        holoColor(2,vec(255,255,0))
+        holoDisableShading(2,1)
+        holoScale(2,vec(0.5,0.5,0.5)) 
+
+        holoCreate(3) #shot location 1
+        holoColor(3,vec(255,0,0))
+        holoDisableShading(3,1)
+        holoScale(3,vec(0.5,0.5,0.5))
+
+        holoCreate(4) #shot location 2
+        holoColor(4,vec(255,0,0))
+        holoDisableShading(4,1)
+        holoScale(4,vec(0.5,0.5,0.5))   
+
+        holoCreate(5) #shot midpoint
+        holoColor(5,vec(255,0,0))
+        holoDisableShading(5,1)
+        holoScale(5,vec(0.5,0.5,0.5))
+                
+        HC += 5
+    }
 }
 
 
@@ -460,8 +504,9 @@ if(!changed(Weapon) & changed(WepAmmo) & $WepAmmo < 0 & weaponAllowed(Weapon)){
     
         for(I=1,Found:count()){
             local CurrCoin = Found[I,entity]
-    
-            local RHS = rayHitSphere(owner():shootPos(),owner():eye(),CurrCoin:pos(),47.5)
+            local LagCompPos = CurrCoin:pos() - CurrCoin:vel():normalized()*100
+            
+            local RHS = rayHitSphere(owner():shootPos(),owner():eye(),LagCompPos,47.5)
             local Hit = RHS[1,number] & hitScan(owner():shootPos(),RHS[2,vector])
             
             if(Hit){
@@ -482,6 +527,16 @@ if(!changed(Weapon) & changed(WepAmmo) & $WepAmmo < 0 & weaponAllowed(Weapon)){
                     }
                 }
                 
+                if(DebugHitReg){    
+                    holoPos(1,LagCompPos)
+                    holoPos(2,CurrCoin:pos())
+                    holoPos(3,RHS[2,vector])
+                    holoPos(4,RHS[3,vector])    
+                    holoPos(5,RHS[4,vector])
+                }
+            
+                print(RHS[3,vector]:distance(CurrCoin:pos()),CurrCoin:vel():length())
+                                    
                 HitCoin = 1
                 
                 break
