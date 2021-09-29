@@ -32,7 +32,7 @@ if(first()){
     all e2s in this group can communicate with eachother and hit eachothers coins
     ]#
     
-    DebugHitReg = 1
+    DebugHitReg = 0
     #yellow = actual coinpos
     #green = coin hitbox center
     #red = shot location
